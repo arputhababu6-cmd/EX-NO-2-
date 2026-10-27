@@ -35,9 +35,193 @@ STEP-5: Display the obtained cipher text.
 
 
 Program:
+```
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 
+#define SIZE 100
+
+void toLowerCase(char str[]) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = tolower(str[i]);
+    }
+}
+
+void removeSpaces(char str[]) {
+    int j = 0;
+    for (int i = 0; str[i]; i++) {
+        if (str[i] != ' ')
+            str[j++] = str[i];
+    }
+    str[j] = '\0';
+}
+
+void generateKeyTable(char key[], char keyTable[5][5]) {
+    int used[26] = {0};
+
+    // Treat J as I
+    used['j' - 'a'] = 1;
+
+    int row = 0, col = 0;
+
+    for (int i = 0; key[i]; i++) {
+        char ch = key[i];
+
+        if (ch == 'j')
+            ch = 'i';
+
+        if (ch >= 'a' && ch <= 'z' && !used[ch - 'a']) {
+            keyTable[row][col] = ch;
+            used[ch - 'a'] = 1;
+
+            col++;
+            if (col == 5) {
+                row++;
+                col = 0;
+            }
+        }
+    }
+
+    for (char ch = 'a'; ch <= 'z'; ch++) {
+        if (!used[ch - 'a']) {
+            keyTable[row][col] = ch;
+
+            col++;
+            if (col == 5) {
+                row++;
+                col = 0;
+            }
+        }
+    }
+}
+
+void printKeyTable(char keyTable[5][5]) {
+    printf("\nKey Matrix:\n");
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            printf("%c ", keyTable[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void search(char keyTable[5][5], char a, char b, int pos[]) {
+    if (a == 'j')
+        a = 'i';
+    if (b == 'j')
+        b = 'i';
+
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (keyTable[i][j] == a) {
+                pos[0] = i;
+                pos[1] = j;
+            }
+            if (keyTable[i][j] == b) {
+                pos[2] = i;
+                pos[3] = j;
+            }
+        }
+    }
+}
+
+void prepareText(char plain[]) {
+    char temp[SIZE];
+    int i = 0, j = 0;
+
+    while (plain[i]) {
+        temp[j++] = plain[i];
+
+        if (plain[i + 1]) {
+            if (plain[i] == plain[i + 1]) {
+                temp[j++] = 'x';
+                i++;
+            } else {
+                i++;
+            }
+        } else {
+            i++;
+        }
+    }
+
+    temp[j] = '\0';
+
+    if (j % 2 != 0) {
+        temp[j++] = 'z';
+        temp[j] = '\0';
+    }
+
+    strcpy(plain, temp);
+}
+
+void encrypt(char plain[], char keyTable[5][5]) {
+    int pos[4];
+
+    for (int i = 0; plain[i]; i += 2) {
+        search(keyTable, plain[i], plain[i + 1], pos);
+
+        // Same row
+        if (pos[0] == pos[2]) {
+            plain[i] = keyTable[pos[0]][(pos[1] + 1) % 5];
+            plain[i + 1] = keyTable[pos[2]][(pos[3] + 1) % 5];
+        }
+
+        // Same column
+        else if (pos[1] == pos[3]) {
+            plain[i] = keyTable[(pos[0] + 1) % 5][pos[1]];
+            plain[i + 1] = keyTable[(pos[2] + 1) % 5][pos[3]];
+        }
+
+        // Rectangle rule
+        else {
+            char c1 = keyTable[pos[0]][pos[3]];
+            char c2 = keyTable[pos[2]][pos[1]];
+
+            plain[i] = c1;
+            plain[i + 1] = c2;
+        }
+    }
+}
+
+int main() {
+    char key[SIZE];
+    char plain[SIZE];
+    char keyTable[5][5];
+
+    printf("Enter Key: ");
+    fgets(key, SIZE, stdin);
+    key[strcspn(key, "\n")] = '\0';
+
+    printf("Enter Plaintext: ");
+    fgets(plain, SIZE, stdin);
+    plain[strcspn(plain, "\n")] = '\0';
+
+    toLowerCase(key);
+    removeSpaces(key);
+
+    toLowerCase(plain);
+    removeSpaces(plain);
+
+    prepareText(plain);
+
+    generateKeyTable(key, keyTable);
+
+    printf("\nKey       : %s\n", key);
+    printf("Plaintext : %s\n", plain);
+
+    printKeyTable(keyTable);
+
+    encrypt(plain, keyTable);
+
+    printf("\nCiphertext: %s\n", plain);
+
+    return 0;
+}
+```
 
 
 
 
 Output:
+<img width="1608" height="711" alt="image" src="https://github.com/user-attachments/assets/f4e5301c-8108-496e-acb6-6e4a68839b44" />
